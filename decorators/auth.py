@@ -23,3 +23,25 @@ def require_api_key(f):
         return f(*args, **kwargs)
 
     return decorated_function
+
+def require_jwt(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        auth_header = request.headers.get("Authorization")
+
+        if not auth_header:
+            return jsonify({"error": "Missing Authorization header"}), 401
+
+        if not auth_header.startswith("Bearer "):
+            return jsonify({"error": "Invalid Authorization header format"}), 401
+
+        token = auth_header.split(" ")[1]
+
+        try:
+            decoded_token = auth.verify_id_token(token)
+            uid = decoded_token["uid"]
+            return f(*args, uid=uid, **kwargs)
+        except Exception:
+            return jsonify({"error": "Invalid or expired token"}), 401
+
+    return decorated_function
