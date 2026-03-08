@@ -5,6 +5,7 @@ from flask import request, jsonify
 from firebase_admin import auth
 
 def require_api_key(f):
+    """Decorator to require API key authentication for device/iot endpoints."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         expected_key = os.environ.get("SENSOR_API_KEY")
@@ -25,6 +26,11 @@ def require_api_key(f):
     return decorated_function
 
 def require_jwt(f):
+    """Decorator to require JWT authentication for API endpoints.
+
+    Verifies the JWT token from the Authorization header and injects
+    the user ID into the route function as a keyword argument 'uid'.
+    """
     @wraps(f)
     def decorated_function(*args, **kwargs):
         auth_header = request.headers.get("Authorization")
