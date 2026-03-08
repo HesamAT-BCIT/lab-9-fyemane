@@ -1,5 +1,7 @@
+import json
 import re
 import time
+from pathlib import Path
 
 from flask import request, jsonify
 from firebase_admin import firestore
@@ -13,7 +15,6 @@ from utils.validation import (
     normalize_profile_data,
     require_json_content_type,
 )
-
 
 # --- API Routes ---
 
