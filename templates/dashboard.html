@@ -3,6 +3,24 @@
 
 <head>
     <title>Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 24px;
+        }
+
+        .chart-container {
+            width: 100%;
+            max-width: 1000px;
+            height: 450px;
+            margin-top: 24px;
+        }
+
+        ul {
+            margin-top: 16px;
+        }
+    </style>
 </head>
 
 <body>
@@ -10,9 +28,131 @@
     <p>Use the navigation below to manage your profile.</p>
 
     <ul>
-        <li><a href="{{ url_for('profile') }}">Create/Update Profile</a></li>
-        <li><a href="{{ url_for('logout') }}">Logout</a></li>
+        <li><a href="{{ url_for('profile.profile') }}">Create/Update Profile</a></li>
+        <li><a href="{{ url_for('auth.logout') }}">Logout</a></li>
     </ul>
+
+    <h2>Sensor Dashboard</h2>
+    <p>Temperature and humidity data are updated every 5 seconds.</p>
+
+    <div class="chart-container">
+        <canvas id="sensorChart"></canvas>
+    </div>
+
+    <script>
+        const token = "{{ jwt_token }}";
+    </script>
+
+    <script>
+        let sensorChart = null;
+
+        async function updateChart() {
+            try {
+                const response = await fetch("/api/sensor_data", {
+                    method: "GET",
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error ${response.status}`);
+                }
+
+                const sensorData = await response.json();
+
+                const labels = sensorData.map(point => {
+                    const date = new Date(point.timestamp);
+                    return date.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit"
+                    });
+                });
+
+                const temperatures = sensorData.map(point => point.temperature);
+                const humidities = sensorData.map(point => point.humidity);
+
+                if (!sensorChart) {
+                    const ctx = document.getElementById("sensorChart").getContext("2d");
+
+                    sensorChart = new Chart(ctx, {
+                        type: "line",
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                {
+                                    label: "Temperature (°C)",
+                                    data: temperatures,
+                                    yAxisID: "y",
+                                    tension: 0.3
+                                },
+                                {
+                                    label: "Humidity (%)",
+                                    data: humidities,
+                                    yAxisID: "y1",
+                                    tension: 0.3
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                mode: "index",
+                                intersect: false
+                            },
+                            plugins: {
+                                tooltip: {
+                                    enabled: true
+                                },
+                                legend: {
+                                    display: true
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: "Time"
+                                    }
+                                },
+                                y: {
+                                    type: "linear",
+                                    position: "left",
+                                    title: {
+                                        display: true,
+                                        text: "Temperature (°C)"
+                                    }
+                                },
+                                y1: {
+                                    type: "linear",
+                                    position: "right",
+                                    title: {
+                                        display: true,
+                                        text: "Humidity (%)"
+                                    },
+                                    grid: {
+                                        drawOnChartArea: false
+                                    }
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    sensorChart.data.labels = labels;
+                    sensorChart.data.datasets[0].data = temperatures;
+                    sensorChart.data.datasets[1].data = humidities;
+                    sensorChart.update();
+                }
+
+            } catch (error) {
+                console.error("Failed to fetch sensor data:", error);
+            }
+        }
+
+        updateChart();
+        setInterval(updateChart, 5000);
+    </script>
 </body>
 
 </html>
