@@ -145,6 +145,26 @@ def api_delete_profile(uid: str):
     return jsonify({"message": "Profile deleted successfully"}), 200
 
 
+@api_bp.get("/sensor_data")
+@require_jwt
+def api_get_sensor_data(uid: str):
+    """Return mock sensor data for dashboard visualization."""
+
+    data_file = Path(__file__).resolve().parents[2] / "mock_sensor_data.json"
+
+    try:
+        with open(data_file, "r", encoding="utf-8") as f:
+            sensor_data = json.load(f)
+
+        return jsonify(sensor_data), 200
+
+    except FileNotFoundError:
+        return jsonify({"error": "mock_sensor_data.json not found"}), 404
+
+    except json.JSONDecodeError:
+        return jsonify({"error": "mock_sensor_data.json is invalid"}), 500
+
+
 @api_bp.route("/sensor_data", methods=["POST"])
 @require_jwt
 @require_api_key
